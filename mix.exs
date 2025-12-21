@@ -1,0 +1,64 @@
+defmodule Inertial.MixProject do
+  use Mix.Project
+
+  def project do
+    [
+      app: :inertial,
+      description: "Event notifications for network interfaces",
+      version: version(),
+      elixir: "~> 1.16",
+      compilers: [:elixir_make] ++ Mix.compilers(),
+      start_permanent: Mix.env() == :prod,
+      deps: deps(),
+      package: package()
+    ]
+  end
+
+  # Run "mix help compile.app" to learn about applications.
+  def application do
+    [
+      extra_applications: [:logger],
+      mod: {Inertial.Application, []}
+    ]
+  end
+
+  # Run "mix help deps" to learn about dependencies.
+  defp deps do
+    [
+      {:elixir_make, "~> 0.9", runtime: false},
+      {:typedstruct, "~> 0.5", runtime: false}
+    ]
+  end
+
+  defp package do
+    [
+      maintainers: ["Nick Gunn"],
+      licenses: ["MIT"],
+      files: ~w(lib c_src Makefile CHANGELOG.md LICENSE.md mix.exs README.md .formatter.exs),
+    ]
+  end
+
+  defp version(fallback \\ "0.0.0") do
+    String.trim(get_version_from_hex() || get_version_from_git() || fallback)
+  end
+
+  defp get_version_from_hex() do
+    case :file.consult("./hex_metadata.config") do
+      {:ok, props} ->
+        Map.new(props)["version"]
+
+      _ ->
+        nil
+    end
+  end
+
+  defp get_version_from_git() do
+    case System.cmd("git", ["describe", "--dirty"], stderr_to_stdout: true) do
+      {version, 0} ->
+        String.trim(version)
+
+      _ ->
+        nil
+    end
+  end
+end
