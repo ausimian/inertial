@@ -17,8 +17,8 @@ static ERL_NIF_TERM s_error;
 static ERL_NIF_TERM s_failed;
 static ERL_NIF_TERM s_groups;
 static ERL_NIF_TERM s_type;
-static ERL_NIF_TERM s_inet_add_addr;
-static ERL_NIF_TERM s_inet_del_addr;
+static ERL_NIF_TERM s_new_addr;
+static ERL_NIF_TERM s_del_addr;
 static ERL_NIF_TERM s_ifname;
 static ERL_NIF_TERM s_addr;
 static ERL_NIF_TERM s_unknown;
@@ -37,8 +37,8 @@ static int load(ErlNifEnv *env, void **priv_data, ERL_NIF_TERM load_info)
     s_failed = enif_make_atom(env, "failed");
     s_groups = enif_make_atom(env, "groups");
     s_type = enif_make_atom(env, "type");
-    s_inet_add_addr = enif_make_atom(env, "inet_add_addr");
-    s_inet_del_addr = enif_make_atom(env, "inet_del_addr");
+    s_new_addr = enif_make_atom(env, "new_addr");
+    s_del_addr = enif_make_atom(env, "del_addr");
     s_ifname = enif_make_atom(env, "ifname");
     s_addr = enif_make_atom(env, "addr");
     s_unknown = enif_make_atom(env, "unknown");
@@ -106,11 +106,10 @@ static ERL_NIF_TERM decode_event(ErlNifEnv *env, int argc, const ERL_NIF_TERM ar
             struct rtattr *rth = IFA_RTA( ifa );
             int rtl = IFA_PAYLOAD( nlh );
 
-            ERL_NIF_TERM type = nlh->nlmsg_type == RTM_NEWADDR ? s_inet_add_addr : s_inet_del_addr;
+            ERL_NIF_TERM type = nlh->nlmsg_type == RTM_NEWADDR ? s_new_addr : s_del_addr;
             ERL_NIF_TERM ifname = s_unknown;
             ERL_NIF_TERM addr = s_unknown;
 
-            // TODO: Need to handle ipv6 addresses here
             while( rtl && RTA_OK( rth, rtl ) )
             {
                 if( rth->rta_type == IFA_LABEL )
@@ -120,14 +119,30 @@ static ERL_NIF_TERM decode_event(ErlNifEnv *env, int argc, const ERL_NIF_TERM ar
                     memcpy( dst, src, strlen( src ) );
                 }
 
-                if( rth->rta_type == IFA_LOCAL )
+                if( rth->rta_type == IFA_LOCAL || rth->rta_type == IFA_ADDRESS )
                 {
-                    const uint8_t * octets = RTA_DATA( rth );
-                    addr = enif_make_tuple4( env, 
-                            enif_make_int(env, octets[0]),
-                            enif_make_int(env, octets[1]),
-                            enif_make_int(env, octets[2]),
-                            enif_make_int(env, octets[3]) );
+                    if( ifa->ifa_family == AF_INET )
+                    {
+                        const uint8_t * octets = RTA_DATA( rth );
+                        addr = enif_make_tuple4( env,
+                                enif_make_int(env, octets[0]),
+                                enif_make_int(env, octets[1]),
+                                enif_make_int(env, octets[2]),
+                                enif_make_int(env, octets[3]) );
+                    }
+                    else if( ifa->ifa_family == AF_INET6 )
+                    {
+                        const uint16_t * segments = RTA_DATA( rth );
+                        addr = enif_make_tuple8( env,
+                                enif_make_int(env, ntohs(segments[0])),
+                                enif_make_int(env, ntohs(segments[1])),
+                                enif_make_int(env, ntohs(segments[2])),
+                                enif_make_int(env, ntohs(segments[3])),
+                                enif_make_int(env, ntohs(segments[4])),
+                                enif_make_int(env, ntohs(segments[5])),
+                                enif_make_int(env, ntohs(segments[6])),
+                                enif_make_int(env, ntohs(segments[7])) );
+                    }
                 }
 
                 rth = RTA_NEXT( rth, rtl );
