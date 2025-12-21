@@ -25,4 +25,7 @@ inertial-*.tar
 # Temporary files, for example, from tests.
 /tmp/
 
+# Ignore Claude AI files
+/.claude/
+
 
