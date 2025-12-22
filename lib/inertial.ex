@@ -2,24 +2,73 @@ defmodule Inertial do
   @moduledoc """
   Inertial monitors dynamic interface address assignment and removal.
 
-  The API exposes a single function, `event_mgr/0`, that returns the
-  event manager process that relays events. Clients should use the
-  [gen_event](https://erlang.org/doc/apps/stdlib/gen_event.html) API
-  to add and remove handlers from this event manager.
+  Inertial provides a simple API to subscribe to system events when IP addresses
+  are added or removed from network interfaces.
+
+  ## Example
+
+      iex> ref = Inertial.subscribe()
+      #Reference<0.1234567890.1234567890.123456>
+      iex> receive do
+      ...>   {^ref, event} -> IO.inspect(event)
+      ...> end
+      %{type: :new_addr, ifname: "eth0", addr: {192, 168, 1, 100}}
   """
 
   @type event_type() :: :new_addr | :del_addr
   @type event() :: %{type: event_type(), ifname: String.t(), addr: :inet.ip_address()}
+  @type event_msg() :: {reference(), event()}
 
   @doc """
-  Returns the inertial event manager process.
+  Subscribes the calling process to Inertial events.
 
-  Clients should use [:gen_event.add_handler/3](https://erlang.org/doc/apps/stdlib/gen_event.html#add_handler/3) or
-  [:gen_event.add_sup_handler/3](https://erlang.org/doc/apps/stdlib/gen_event.html#add_sup_handler/3)
-  to add their own handlers to this event manager.
+  Returns a reference that can be used to unsubscribe later, and identifies the event when
+  it arrives in the caller's mailbox. Messages will be of type `t:event_msg/0`.
 
-  The events published will of type `t:event/0`.
+  ## Example
+
+      iex> ref = Inertial.subscribe()
+      #Reference<0.1234567890.1234567890.123456>
+      iex> receive do
+      ...>   {^ref, event} -> IO.inspect(event)
+      ...> end
+      %{type: :new_addr, ifname: "eth0", addr: {192, 168, 1, 100}}
   """
-  @spec event_mgr() :: pid() | atom()
-  def event_mgr, do: Inertial.EventManager
+  @spec subscribe() :: reference()
+  def subscribe() do
+    pid = self()
+    alias = Process.alias()
+    :ok = :gen_event.add_handler(Inertial.EventManager, {Inertial.Handler, alias}, {pid, alias})
+    alias
+  end
+
+  @doc """
+  Unsubscribes the calling process from Inertial events.
+
+  Takes the reference returned by `subscribe/0`, and unsubscribes. Should be called by the same
+  process that called `subscribe/0`.
+
+  Guarantees that no further messages with the given reference will be received after this call.
+
+  ## Example
+
+      iex> ref = Inertial.subscribe()
+      #Reference<0.1234567890.1234567890.123456>
+      iex> Inertial.unsubscribe(ref)
+      :ok
+  """
+  @spec unsubscribe(reference()) :: :ok
+  def unsubscribe(ref) when is_reference(ref) do
+    Process.unalias(ref)
+    :gen_event.delete_handler(Inertial.EventManager, {Inertial.Handler, ref}, [])
+    drain_late_events(ref)
+  end
+
+  defp drain_late_events(ref) do
+    receive do
+      {^ref, _event} -> drain_late_events(ref)
+    after
+      0 -> :ok
+    end
+  end
 end
