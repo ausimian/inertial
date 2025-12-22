@@ -18,7 +18,11 @@ defmodule Inertial do
   """
 
   @type link_event() :: %{type: :link_up | :link_down, ifname: String.t()}
-  @type addr_event() :: %{type: :new_addr | :del_addr, ifname: String.t(), addr: :inet.ip_address()}
+  @type addr_event() :: %{
+          type: :new_addr | :del_addr,
+          ifname: String.t(),
+          addr: :inet.ip_address()
+        }
   @type event_msg() :: {reference(), link_event() | addr_event()}
 
   @doc """

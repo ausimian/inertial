@@ -34,7 +34,7 @@ defmodule Inertial.MixProject do
     [
       maintainers: ["Nick Gunn"],
       licenses: ["MIT"],
-      files: ~w(lib c_src Makefile CHANGELOG.md LICENSE.md mix.exs README.md .formatter.exs),
+      files: ~w(lib c_src Makefile CHANGELOG.md LICENSE.md mix.exs README.md .formatter.exs)
     ]
   end
 
