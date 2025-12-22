@@ -18,8 +18,8 @@ static ERL_NIF_TERM s_vendor;
 static ERL_NIF_TERM s_class;
 static ERL_NIF_TERM s_subclass;
 static ERL_NIF_TERM s_type;
-static ERL_NIF_TERM s_if_up;
-static ERL_NIF_TERM s_if_down;
+static ERL_NIF_TERM s_link_up;
+static ERL_NIF_TERM s_link_down;
 static ERL_NIF_TERM s_new_addr;
 static ERL_NIF_TERM s_del_addr;
 static ERL_NIF_TERM s_ifname;
@@ -43,8 +43,8 @@ static int load(ErlNifEnv *env, void **priv_data, ERL_NIF_TERM load_info)
     s_class = enif_make_atom(env, "class");
     s_subclass = enif_make_atom(env, "subclass");
     s_type = enif_make_atom(env, "type");
-    s_if_up = enif_make_atom(env, "if_up");
-    s_if_down = enif_make_atom(env, "if_down");
+    s_link_up = enif_make_atom(env, "link_up");
+    s_link_down = enif_make_atom(env, "link_down");
     s_new_addr = enif_make_atom(env, "new_addr");
     s_del_addr = enif_make_atom(env, "del_addr");
     s_ifname = enif_make_atom(env, "ifname");
@@ -119,7 +119,7 @@ static ERL_NIF_TERM parse_dl_event(ErlNifEnv *env, const struct kern_event_msg *
                 {
                     memcpy( bin, tmp, len );
 
-                    ERL_NIF_TERM type = msg->event_code == KEV_DL_LINK_ON ? s_if_up : s_if_down;
+                    ERL_NIF_TERM type = msg->event_code == KEV_DL_LINK_ON ? s_link_up : s_link_down;
                     ERL_NIF_TERM keys[2] = { s_type, s_ifname };
                     ERL_NIF_TERM vals[2] = { type, ifname };
 

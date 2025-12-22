@@ -8,6 +8,7 @@
 #include <sys/socket.h>
 #include <sys/ioctl.h>
 #include <unistd.h>
+#include <linux/if.h>
 #include <linux/rtnetlink.h>
 #include <erl_nif.h>
 #include <erl_driver.h>
@@ -19,6 +20,8 @@ static ERL_NIF_TERM s_groups;
 static ERL_NIF_TERM s_type;
 static ERL_NIF_TERM s_new_addr;
 static ERL_NIF_TERM s_del_addr;
+static ERL_NIF_TERM s_link_up;
+static ERL_NIF_TERM s_link_down;
 static ERL_NIF_TERM s_ifname;
 static ERL_NIF_TERM s_addr;
 static ERL_NIF_TERM s_unknown;
@@ -39,6 +42,8 @@ static int load(ErlNifEnv *env, void **priv_data, ERL_NIF_TERM load_info)
     s_type = enif_make_atom(env, "type");
     s_new_addr = enif_make_atom(env, "new_addr");
     s_del_addr = enif_make_atom(env, "del_addr");
+    s_link_up = enif_make_atom(env, "link_up");
+    s_link_down = enif_make_atom(env, "link_down");
     s_ifname = enif_make_atom(env, "ifname");
     s_addr = enif_make_atom(env, "addr");
     s_unknown = enif_make_atom(env, "unknown");
@@ -170,6 +175,51 @@ static ERL_NIF_TERM decode_event(ErlNifEnv *env, int argc, const ERL_NIF_TERM ar
 
                 ERL_NIF_TERM map;
                 if( enif_make_map_from_arrays( env, keys, vals, 3, &map ) )
+                {
+                    events = enif_make_list_cell( env, map, events );
+                }
+            }
+        }
+        else if( nlh->nlmsg_type == RTM_NEWLINK || nlh->nlmsg_type == RTM_DELLINK )
+        {
+            struct ifinfomsg *ifi = NLMSG_DATA( nlh );
+
+            // Skip messages where ifi_change is 0xFFFFFFFF (initial state dump)
+            // or 0 (no actual change)
+            if( ifi->ifi_change == 0 || ifi->ifi_change == 0xFFFFFFFF )
+            {
+                nlh = NLMSG_NEXT( nlh, len );
+                continue;
+            }
+
+            // Only process if link state flags (IFF_UP or IFF_RUNNING) actually changed
+            if( !(ifi->ifi_change & (IFF_UP | IFF_RUNNING)) )
+            {
+                nlh = NLMSG_NEXT( nlh, len );
+                continue;
+            }
+
+            // Get interface name
+            char ifname_buf[IF_NAMESIZE];
+            ERL_NIF_TERM ifname = s_unknown;
+            if( if_indextoname( ifi->ifi_index, ifname_buf ) != NULL )
+            {
+                unsigned char * dst = enif_make_new_binary( env, strlen( ifname_buf ), &ifname );
+                memcpy( dst, ifname_buf, strlen( ifname_buf ) );
+            }
+
+            // Determine current link state
+            // IFF_UP means administratively up, IFF_RUNNING means carrier detected
+            int is_up = (ifi->ifi_flags & IFF_UP) && (ifi->ifi_flags & IFF_RUNNING);
+            ERL_NIF_TERM type = is_up ? s_link_up : s_link_down;
+
+            if( enif_is_binary( env, ifname ) )
+            {
+                ERL_NIF_TERM keys[2] = { s_type, s_ifname };
+                ERL_NIF_TERM vals[2] = { type, ifname };
+
+                ERL_NIF_TERM map;
+                if( enif_make_map_from_arrays( env, keys, vals, 2, &map ) )
                 {
                     events = enif_make_list_cell( env, map, events );
                 }
