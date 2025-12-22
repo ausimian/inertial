@@ -81,8 +81,8 @@ defmodule Inertial.Monitor do
         # pf_netlink(16), sock_raw(3), netlink_route(0)
         {:ok, s} = :socket.open(16, 3, 0)
         {:ok, fd} = :socket.getopt(s, {:otp, :fd})
-        # RTMGRP_IPV4_IFADDR(0x10) | RTMGRP_IPV6_IFADDR(0x100)
-        :ok = set_event_filter(fd, %{groups: 0x110})
+        # RTMGRP_LINK(0x1) | RTMGRP_IPV4_IFADDR(0x10) | RTMGRP_IPV6_IFADDR(0x100)
+        :ok = set_event_filter(fd, %{groups: 0x111})
         {:ok, %__MODULE__{socket: s}}
     end
   end
