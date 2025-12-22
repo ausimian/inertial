@@ -106,9 +106,24 @@ static ERL_NIF_TERM decode_event(ErlNifEnv *env, int argc, const ERL_NIF_TERM ar
             struct rtattr *rth = IFA_RTA( ifa );
             int rtl = IFA_PAYLOAD( nlh );
 
+            // Skip tentative IPv6 addresses (DAD in progress)
+            if( ifa->ifa_family == AF_INET6 && (ifa->ifa_flags & IFA_F_TENTATIVE) )
+            {
+                nlh = NLMSG_NEXT( nlh, len );
+                continue;
+            }
+
             ERL_NIF_TERM type = nlh->nlmsg_type == RTM_NEWADDR ? s_new_addr : s_del_addr;
             ERL_NIF_TERM ifname = s_unknown;
             ERL_NIF_TERM addr = s_unknown;
+
+            // Get interface name from index (needed for IPv6)
+            char ifname_buf[IF_NAMESIZE];
+            if( if_indextoname( ifa->ifa_index, ifname_buf ) != NULL )
+            {
+                unsigned char * dst = enif_make_new_binary( env, strlen( ifname_buf ), &ifname );
+                memcpy( dst, ifname_buf, strlen( ifname_buf ) );
+            }
 
             while( rtl && RTA_OK( rth, rtl ) )
             {
