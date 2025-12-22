@@ -28,4 +28,5 @@ inertial-*.tar
 # Ignore Claude AI files
 /.claude/
 
-
+# Ignore erl history files
+/.erl.history/
