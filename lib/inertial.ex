@@ -1,11 +1,7 @@
 defmodule Inertial do
   @moduledoc """
-  Inertial monitors dynamic interface address assignment and removal.
-
-  Inertial provides a simple API to subscribe to system events when
-
-  - Network interfaces come up or go down.
-  - IP addresses are added or removed from network interfaces.
+  Inertial provides system event notifications for network interface
+  changes such as link status and IP address assignments.
 
   ## Example
 
