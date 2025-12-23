@@ -25,8 +25,8 @@ defmodule Inertial.Monitor do
   end
 
   typedstruct enforce: true do
-    field(:socket, :socket.socket())
-    field(:recv_ref, reference() | nil, default: nil)
+    field :socket, :socket.socket()
+    field :recv_ref, reference() | nil, default: nil
   end
 
   @impl true

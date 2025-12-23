@@ -5,8 +5,8 @@ defmodule Inertial.Handler do
   use TypedStruct
 
   typedrecord :state do
-    field(:alias, reference())
-    field(:mon, reference())
+    field :alias, reference()
+    field :mon, reference()
   end
 
   @impl true
