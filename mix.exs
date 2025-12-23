@@ -1,11 +1,13 @@
 defmodule Inertial.MixProject do
   use Mix.Project
 
+  @version "2.0.0"
+
   def project do
     [
       app: :inertial,
       description: "Event notifications for network interfaces",
-      version: version(),
+      version: @version,
       elixir: "~> 1.16",
       compilers: [:elixir_make] ++ Mix.compilers(),
       start_permanent: Mix.env() == :prod,
@@ -36,29 +38,5 @@ defmodule Inertial.MixProject do
       licenses: ["MIT"],
       files: ~w(lib c_src Makefile CHANGELOG.md LICENSE.md mix.exs README.md .formatter.exs)
     ]
-  end
-
-  defp version(fallback \\ "0.0.0") do
-    String.trim(get_version_from_hex() || get_version_from_git() || fallback)
-  end
-
-  defp get_version_from_hex() do
-    case :file.consult("./hex_metadata.config") do
-      {:ok, props} ->
-        Map.new(props)["version"]
-
-      _ ->
-        nil
-    end
-  end
-
-  defp get_version_from_git() do
-    case System.cmd("git", ["describe", "--dirty"], stderr_to_stdout: true) do
-      {version, 0} ->
-        String.trim(version)
-
-      _ ->
-        nil
-    end
   end
 end
