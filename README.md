@@ -1,7 +1,12 @@
 # Inertial
 
 Inertial provides system event notifications for network interface
-changes such as link status and IP address assignments.
+changes such as link status and IP address assignments, on Linux and OSX.
+
+It uses the OS's native event notification mechanisms to provide real-time
+updates with minimal overhead. A connection is made to a 'system' socket
+using the Erlang [:socket](https://www.erlang.org/doc/apps/kernel/socket.html) module, 
+and a NIF is used to set the appropriate event filters and decode the received packets.
 
 ## Example
 
@@ -22,7 +27,7 @@ in `mix.exs`:
 ```elixir
 def deps do
   [
-    {:inertial, "~> 0.1.0"}
+    {:inertial, "~> 2.0.0"}
   ]
 end
 ```
