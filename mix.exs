@@ -9,10 +9,11 @@ defmodule Inertial.MixProject do
       app: :inertial,
       description: "Event notifications for network interfaces",
       version: @version,
-      elixir: "~> 1.16",
+      elixir: "~> 1.18",
       compilers: [:elixir_make] ++ Mix.compilers(),
       start_permanent: Mix.env() == :prod,
       deps: deps(),
+      aliases: aliases(),
       package: package(),
       docs: docs(),
       source_url: @source_url
@@ -27,12 +28,32 @@ defmodule Inertial.MixProject do
     ]
   end
 
+  def cli do
+    [
+      preferred_envs: [precommit: :test]
+    ]
+  end
+
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
       {:elixir_make, "~> 0.9", runtime: false},
       {:typedstruct, "~> 0.5", runtime: false},
-      {:ex_doc, "~> 0.39", only: :dev, runtime: false}
+      {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
+      {:ex_doc, "~> 0.39", only: :dev, runtime: false},
+      {:publisho, "~> 1.0", only: :dev, runtime: false}
+    ]
+  end
+
+  defp aliases do
+    [
+      precommit: [
+        "compile --warnings-as-errors",
+        "deps.unlock --unused",
+        "format",
+        "credo --strict",
+        "test"
+      ]
     ]
   end
 

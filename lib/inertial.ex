@@ -42,7 +42,7 @@ defmodule Inertial do
       %{type: :new_addr, ifname: "eth0", addr: {192, 168, 1, 100}}
   """
   @spec subscribe() :: reference()
-  def subscribe() do
+  def subscribe do
     pid = self()
     alias = Process.alias()
     :ok = :gen_event.add_handler(Inertial.EventManager, {Inertial.Handler, alias}, {pid, alias})
