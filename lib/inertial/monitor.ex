@@ -3,8 +3,6 @@ defmodule Inertial.Monitor do
   use GenServer
   use TypedStruct
 
-  require Logger
-
   # The monitor uses the OS's built-in support for system event notification,
   # (either sysproto or netlink) for ip-address related events.
   #
