@@ -27,9 +27,9 @@ jobs:
         path: |
           deps
           _build
-        key: ${{ runner.os }}-mix-precommit-${{ hashFiles('**/mix.lock') }}
+        key: ${{ runner.os }}-${{ runner.arch }}-mix-precommit-nif${{ hashFiles('c_src/**', 'Makefile') }}-${{ hashFiles('**/mix.lock') }}
         restore-keys: |
-          ${{ runner.os }}-mix-precommit-
+          ${{ runner.os }}-${{ runner.arch }}-mix-precommit-nif${{ hashFiles('c_src/**', 'Makefile') }}-
 
     - name: Install dependencies
       run: mix deps.get
@@ -73,9 +73,9 @@ jobs:
         path: |
           deps
           _build
-        key: ${{ runner.os }}-mix-${{ matrix.elixir }}-${{ matrix.otp }}-${{ hashFiles('**/mix.lock') }}
+        key: ${{ runner.os }}-${{ runner.arch }}-mix-${{ matrix.elixir }}-${{ matrix.otp }}-nif${{ hashFiles('c_src/**', 'Makefile') }}-${{ hashFiles('**/mix.lock') }}
         restore-keys: |
-          ${{ runner.os }}-mix-${{ matrix.elixir }}-${{ matrix.otp }}-
+          ${{ runner.os }}-${{ runner.arch }}-mix-${{ matrix.elixir }}-${{ matrix.otp }}-nif${{ hashFiles('c_src/**', 'Makefile') }}-
 
     - name: Install dependencies
       run: mix deps.get
