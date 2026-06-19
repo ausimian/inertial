@@ -7,6 +7,36 @@ on:
     branches: [ main ]
 
 jobs:
+  precommit:
+    name: Precommit (Elixir 1.19 / OTP 28)
+    runs-on: ubuntu-24.04
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Elixir
+      uses: erlef/setup-beam@v1
+      with:
+        elixir-version: '1.19'
+        otp-version: '28'
+
+    - name: Restore dependencies cache
+      uses: actions/cache@v4
+      with:
+        path: |
+          deps
+          _build
+        key: ${{ runner.os }}-mix-precommit-${{ hashFiles('**/mix.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-mix-precommit-
+
+    - name: Install dependencies
+      run: mix deps.get
+
+    - name: Run precommit checks
+      run: mix precommit
+
   test:
     name: Test on ${{ matrix.os }} (Elixir ${{ matrix.elixir }} / OTP ${{ matrix.otp }})
     runs-on: ${{ matrix.os }}
@@ -52,10 +82,6 @@ jobs:
 
     - name: Compile
       run: mix compile --warnings-as-errors
-
-    - name: Check formatting
-      run: mix format --check-formatted
-      if: matrix.os == 'ubuntu-24.04' && matrix.elixir == '1.19' && matrix.otp == '28'
 
     - name: Run tests
       run: mix test
