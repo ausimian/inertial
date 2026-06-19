@@ -61,7 +61,10 @@ static ERL_NIF_TERM set_event_filter(ErlNifEnv *env, int argc, const ERL_NIF_TER
     struct sockaddr_nl local =
     {
         .nl_family = AF_NETLINK,
-        .nl_pid = getpid()
+        // Let the kernel assign a unique port-id. The BEAM is a single OS
+        // process, so binding to getpid() collides (EADDRINUSE) with any
+        // other netlink socket already auto-bound in the same process.
+        .nl_pid = 0
     };
 
     ERL_NIF_TERM key, val;
