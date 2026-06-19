@@ -9,7 +9,7 @@ defmodule Inertial.MixProject do
       app: :inertial,
       description: "Event notifications for network interfaces",
       version: @version,
-      elixir: "~> 1.16",
+      elixir: "~> 1.18",
       compilers: [:elixir_make] ++ Mix.compilers(),
       start_permanent: Mix.env() == :prod,
       deps: deps(),
@@ -32,7 +32,8 @@ defmodule Inertial.MixProject do
     [
       {:elixir_make, "~> 0.9", runtime: false},
       {:typedstruct, "~> 0.5", runtime: false},
-      {:ex_doc, "~> 0.39", only: :dev, runtime: false}
+      {:ex_doc, "~> 0.39", only: :dev, runtime: false},
+      {:publisho, "~> 1.0", only: :dev, runtime: false}
     ]
   end
 
