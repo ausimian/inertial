@@ -11,10 +11,11 @@ defmodule InertialTest do
   test "can subscribe and receive events" do
     ref = Inertial.subscribe()
     assert is_reference(ref)
-    # Since we can't easily trigger real network events in a test,
-    # we will just check that the subscription works and that no
-    # messages are received immediately.
-    refute_receive {^ref, _event}, 100
+    assert subscribed?(ref)
+
+    notify(@link_up)
+
+    assert_received {^ref, @link_up}
   end
 
   describe "subscribe/0 (unscoped)" do
@@ -61,6 +62,7 @@ defmodule InertialTest do
       # refutation below is about filtering rather than about timing.
       assert_received {^unscoped, @other_link_up}
       refute_received {^scoped, _event}
+      assert subscribed?(scoped)
 
       notify(@link_up)
 
@@ -76,6 +78,7 @@ defmodule InertialTest do
 
       assert_received {^scoped, %{type: :new_addr, ifname: "wlan0"}}
       refute_received {^scoped, %{ifname: "eth0"}}
+      assert subscribed?(scoped)
     end
 
     test "accepts a list of interfaces" do
@@ -88,6 +91,7 @@ defmodule InertialTest do
       assert_received {^scoped, @link_up}
       assert_received {^scoped, @other_link_up}
       refute_received {^scoped, _event}
+      assert subscribed?(scoped)
     end
 
     test "an empty list matches nothing" do
@@ -98,6 +102,7 @@ defmodule InertialTest do
 
       assert_received {^unscoped, @link_up}
       refute_received {^scoped, _event}
+      assert subscribed?(scoped)
     end
 
     test "never receives events whose interface could not be determined" do
@@ -109,6 +114,10 @@ defmodule InertialTest do
 
       assert_received {^unscoped, ^event}
       refute_received {^scoped, _event}
+
+      # The scoped handler must have survived the event it filtered out.
+      notify(@link_up)
+      assert_received {^scoped, @link_up}
     end
 
     test "scoped subscriptions are independent of each other" do
@@ -119,6 +128,7 @@ defmodule InertialTest do
 
       assert_received {^eth, @link_up}
       refute_received {^wlan, _event}
+      assert subscribed?(wlan)
     end
 
     test "unsubscribing a scoped subscription leaves the others intact" do
@@ -131,6 +141,7 @@ defmodule InertialTest do
 
       assert_received {^unscoped, @link_up}
       refute_received {^eth, _event}
+      refute subscribed?(eth)
     end
 
     test "rejects a filter that is not an interface name" do
@@ -146,5 +157,11 @@ defmodule InertialTest do
     :ok = Inertial.EventManager.notify(event)
     _ = :gen_event.which_handlers(Inertial.EventManager)
     :ok
+  end
+
+  # A refutation only means the event was filtered if the handler is still
+  # installed - `:gen_event` silently removes a handler that raises.
+  defp subscribed?(ref) do
+    {Inertial.Handler, ref} in :gen_event.which_handlers(Inertial.EventManager)
   end
 end
