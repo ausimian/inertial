@@ -16,6 +16,12 @@ defmodule Inertial do
       ...>   {^ref, event} -> IO.inspect(event)
       ...> end
       %{type: :new_addr, ifname: "eth0", addr: {192, 168, 1, 100}}
+
+  Subscriptions cover every interface by default, but can be scoped to one or more
+  interfaces with the `:ifname` option:
+
+      iex> ref = Inertial.subscribe(ifname: "eth0")
+      #Reference<0.1234567890.1234567890.123456>
   """
 
   @type link_event() :: %{type: :link_up | :link_down, ifname: String.t()}
@@ -25,6 +31,8 @@ defmodule Inertial do
           addr: :inet.ip_address()
         }
   @type event_msg() :: {reference(), link_event() | addr_event()}
+  @type ifname_filter() :: :any | String.t() | [String.t()]
+  @type subscribe_option() :: {:ifname, ifname_filter()}
 
   @doc """
   Subscribes the calling process to Inertial events.
@@ -32,7 +40,13 @@ defmodule Inertial do
   Returns a reference that can be used to unsubscribe later, and identifies the event when
   it arrives in the caller's mailbox. Messages will be of type `t:event_msg/0`.
 
-  ## Example
+  ## Options
+
+    * `:ifname` - restricts the subscription to one or more interfaces. Accepts `:any`
+      (the default) to receive events for every interface, a single interface name, or a
+      list of interface names. An empty list matches nothing.
+
+  ## Examples
 
       iex> ref = Inertial.subscribe()
       #Reference<0.1234567890.1234567890.123456>
@@ -40,13 +54,49 @@ defmodule Inertial do
       ...>   {^ref, event} -> IO.inspect(event)
       ...> end
       %{type: :new_addr, ifname: "eth0", addr: {192, 168, 1, 100}}
+
+  Scoping a subscription to a single interface:
+
+      iex> ref = Inertial.subscribe(ifname: "eth0")
+      #Reference<0.1234567890.1234567890.123456>
+
+  Or to a set of interfaces:
+
+      iex> ref = Inertial.subscribe(ifname: ["eth0", "wlan0"])
+      #Reference<0.1234567890.1234567890.123456>
   """
-  @spec subscribe() :: reference()
-  def subscribe do
+  @spec subscribe([subscribe_option()]) :: reference()
+  def subscribe(opts \\ []) when is_list(opts) do
+    filter = opts |> Keyword.get(:ifname, :any) |> normalize_filter()
     pid = self()
     alias = Process.alias()
-    :ok = :gen_event.add_handler(Inertial.EventManager, {Inertial.Handler, alias}, {pid, alias})
+
+    :ok =
+      :gen_event.add_handler(
+        Inertial.EventManager,
+        {Inertial.Handler, alias},
+        {pid, alias, filter}
+      )
+
     alias
+  end
+
+  defp normalize_filter(:any), do: :any
+  defp normalize_filter(ifname) when is_binary(ifname), do: MapSet.new([ifname])
+
+  defp normalize_filter(ifnames) when is_list(ifnames) do
+    if Enum.all?(ifnames, &is_binary/1) do
+      MapSet.new(ifnames)
+    else
+      raise ArgumentError,
+            "expected :ifname to be a list of interface names, got: #{inspect(ifnames)}"
+    end
+  end
+
+  defp normalize_filter(other) do
+    raise ArgumentError,
+          "expected :ifname to be :any, an interface name, or a list of interface names, " <>
+            "got: #{inspect(other)}"
   end
 
   @doc """

@@ -19,6 +19,16 @@ and a NIF is used to set the appropriate event filters and decode the received p
   %{type: :new_addr, ifname: "eth0", addr: {192, 168, 1, 100}}
 ```
 
+Subscriptions cover every interface by default. Pass the `:ifname` option to scope a
+subscription to a single interface, or to a list of them:
+
+```elixir
+  iex> ref = Inertial.subscribe(ifname: "eth0")
+  #Reference<0.1234567890.1234567890.123456>
+  iex> ref = Inertial.subscribe(ifname: ["eth0", "wlan0"])
+  #Reference<0.1234567890.1234567890.123456>
+```
+
 ## Installation
 
 The package can be installed by adding `inertial` to your list of dependencies

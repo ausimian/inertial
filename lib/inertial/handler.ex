@@ -7,23 +7,36 @@ defmodule Inertial.Handler do
   typedrecord :state do
     field :alias, reference()
     field :mon, reference()
+    field :filter, :any | MapSet.t(String.t())
   end
 
   @impl true
-  def init({pid, alias}) when is_pid(pid) and is_reference(alias) do
-    # We are passed both the pid and an alias for the subscribing process. The
-    # pid is used to monitor the process and the alias is used to send messages.
-    # The alias is also used as a unique identifier for the subscription this
-    # handler represents.
+  def init({pid, alias, filter}) when is_pid(pid) and is_reference(alias) do
+    # We are passed the pid of the subscribing process, an alias for it, and the
+    # interface filter for the subscription. The pid is used to monitor the
+    # process and the alias is used to send messages. The alias is also used as a
+    # unique identifier for the subscription this handler represents.
     mon = Process.monitor(pid)
-    {:ok, state(alias: alias, mon: mon)}
+    {:ok, state(alias: alias, mon: mon, filter: filter)}
   end
 
   @impl true
-  def handle_event(event, state(alias: alias) = state) do
-    send(alias, {alias, event})
+  def handle_event(event, state(alias: alias, filter: filter) = state) do
+    if selected?(event, filter) do
+      send(alias, {alias, event})
+    end
+
     {:ok, state}
   end
+
+  # An event whose interface cannot be determined (the decoder reports `:unknown`)
+  # is only delivered to unscoped subscriptions.
+  defp selected?(_event, :any), do: true
+
+  defp selected?(%{ifname: ifname}, filter) when is_binary(ifname),
+    do: MapSet.member?(filter, ifname)
+
+  defp selected?(_event, _filter), do: false
 
   @impl true
   def handle_call(_request, state) do
